@@ -1,2 +1,0 @@
-# eatly-landing
-Сайт
