@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EATLY — Контроль питания без хаоса</title>
+  <meta name="description" content="Фиксируй еду, считай калории и БЖУ, видь прогресс — самостоятельно или с экспертом." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <template id="__bundler_thumbnail" data-bg-color="#0c0d0b">
+    <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="260" fill="#0c0d0b"/>
+      <text x="200" y="118" font-family="sans-serif" font-weight="800" font-size="52" fill="#eeeee9" text-anchor="middle" letter-spacing="-2">EAT</text>
+      <text x="200" y="118" font-family="sans-serif" font-weight="800" font-size="52" fill="#a3e635" text-anchor="middle" letter-spacing="-2" dx="76">LY</text>
+      <rect x="160" y="140" width="80" height="3" rx="2" fill="#a3e635"/>
+    </svg>
+  </template>
+  <style>
+    /* ─── CONSTANTS (edit URLs here) ─── */
+    /* APP_URL: https://t.me/EATLYY_bot          */
+    /* BOT_URL: https://t.me/EATLYY_bot          */
+    /* EXPERT_URL: #                             */
+    /* PRIVACY_URL: #                            */
+    /* TERMS_URL: #                             */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0c0d0b;
+      --bg2:       #111310;
+      --bg3:       #161714;
+      --surface:   #1a1c18;
+      --border:    rgba(255,255,255,0.07);
+      --border2:   rgba(255,255,255,0.12);
+      --text:      #eeeee9;
+      --muted:     rgba(238,238,233,0.5);
+      --accent:    oklch(78% 0.22 128);
+      --accent-dim:oklch(78% 0.22 128 / 0.12);
+      --accent-bg: oklch(78% 0.22 128 / 0.08);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 20px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(to bottom, rgba(12,13,11,0.95) 0%, transparent 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em;
+      color: var(--text); text-decoration: none;
+    }
+    .nav-logo span { color: var(--accent); }
+    .nav-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #0c0d0b;
+      font-size: 0.85rem; font-weight: 700;
+      padding: 10px 20px; border-radius: 100px;
+      text-decoration: none; transition: opacity .2s;
+    }
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* ── BUTTONS ── */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #0c0d0b;
+      font-family: inherit; font-size: 1rem; font-weight: 700;
+      padding: 16px 32px; border-radius: 100px; border: none;
+      cursor: pointer; text-decoration: none;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--text);
+      font-family: inherit; font-size: 1rem; font-weight: 500;
+      padding: 16px 32px; border-radius: 100px;
+      border: 1px solid var(--border2);
+      cursor: pointer; text-decoration: none;
+      transition: border-color .2s, background .2s, transform .15s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); background: var(--accent-bg); transform: translateY(-1px); }
+
+    /* ── SECTIONS ── */
+    section { padding: 100px 40px; max-width: 1120px; margin: 0 auto; }
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800; letter-spacing: -0.03em; line-height: 1.15;
+      margin-bottom: 20px;
+    }
+    .section-sub {
+      font-size: 1.1rem; color: var(--muted); max-width: 560px; line-height: 1.7;
+    }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center;
+      padding-top: 120px; padding-bottom: 80px;
+      max-width: 1120px; margin: 0 auto;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent-dim); border: 1px solid var(--accent-bg);
+      border-radius: 100px; padding: 6px 16px;
+      font-size: 0.8rem; font-weight: 600; color: var(--accent);
+      margin-bottom: 32px; width: fit-content;
+    }
+    .hero-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); display: inline-block;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .hero-title {
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 800; letter-spacing: -0.04em; line-height: 1.05;
+      margin-bottom: 28px; max-width: 780px;
+    }
+    .hero-title em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--muted); max-width: 560px; line-height: 1.75;
+      margin-bottom: 48px;
+    }
+    .hero-buttons { display: flex; flex-wrap: wrap; gap: 14px; }
+
+    /* decorative grid */
+    .hero-grid-bg {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1;
+      pointer-events: none;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 80px 80px;
+      opacity: 0.4;
+    }
+    .hero-glow {
+      position: fixed; top: -20vh; left: 10vw; width: 60vw; height: 60vh;
+      border-radius: 50%; z-index: -1; pointer-events: none;
+      background: radial-gradient(circle, oklch(78% 0.22 128 / 0.06) 0%, transparent 70%);
+    }
+
+    /* ── HOW IT WORKS ── */
+    #how { background: var(--bg2); }
+    #how-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; }
+    .steps {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 2px; margin-top: 60px;
+    }
+    .step {
+      background: var(--surface); padding: 40px 36px;
+      position: relative; overflow: hidden;
+      transition: background .2s;
+    }
+    .step:hover { background: #1e2019; }
+    .step:first-child { border-radius: 16px 0 0 16px; }
+    .step:last-child { border-radius: 0 16px 16px 0; }
+    .step-num {
+      font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em;
+      color: var(--accent); margin-bottom: 20px;
+    }
+    .step h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .step p { font-size: 0.9rem; color: var(--muted); line-height: 1.65; }
+    .step-icon {
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+      color: var(--accent);
+    }
+    .step-icon svg { width: 28px; height: 28px; }
+
+    /* ── FOR WHO ── */
+    #for-who { max-width: 1120px; margin: 0 auto; }
+    .audience-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px; margin-top: 60px;
+    }
+    .audience-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 40px 36px;
+      transition: border-color .25s, background .25s;
+    }
+    .audience-card:hover { border-color: var(--border2); background: #1e2019; }
+    .audience-tag {
+      display: inline-block; font-size: 0.72rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      background: var(--accent-bg); color: var(--accent);
+      padding: 4px 12px; border-radius: 100px; margin-bottom: 20px;
+    }
+    .audience-card h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 12px; }
+    .audience-card p { font-size: 0.92rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── FEATURES ── */
+    #features { background: var(--bg2); }
+    #features-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px; margin-top: 60px;
+    }
+    .feature {
+      padding: 40px 36px;
+      background: var(--surface);
+      transition: background .2s;
+    }
+    .feature:hover { background: #1e2019; }
+    .feature:nth-child(1) { border-radius: 16px 0 0 0; }
+    .feature:nth-child(3) { border-radius: 0 16px 0 0; }
+    .feature:nth-child(4) { border-radius: 0 0 0 16px; }
+    .feature:nth-child(6) { border-radius: 0 0 16px 0; }
+    .feature-ico {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; color: var(--accent);
+    }
+    .feature-ico svg { width: 24px; height: 24px; }
+    .feature h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feature p { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── PRICING ── */
+    #pricing { max-width: 1120px; margin: 0 auto; }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px; margin-top: 60px; max-width: 720px;
+    }
+    .plan {
+      border: 1px solid var(--border);
+      border-radius: 24px; padding: 40px 36px;
+      display: flex; flex-direction: column; gap: 28px;
+      transition: border-color .25s;
+    }
+    .plan:hover { border-color: var(--border2); }
+    .plan.featured {
+      border-color: var(--accent);
+      background: var(--accent-bg);
+      position: relative;
+    }
+    .plan-badge {
+      position: absolute; top: -12px; left: 36px;
+      background: var(--accent); color: #0c0d0b;
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 4px 14px; border-radius: 100px;
+    }
+    .plan-name { font-size: 0.85rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+    .plan-price { font-size: 2.8rem; font-weight: 800; letter-spacing: -0.04em; }
+    .plan-price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
+    .plan-desc { font-size: 0.92rem; color: var(--muted); line-height: 1.6; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .plan-features li {
+      font-size: 0.9rem; display: flex; align-items: flex-start; gap: 10px;
+    }
+    .plan-features li::before {
+      content: ''; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent-dim); border: 1px solid var(--accent-bg);
+      flex-shrink: 0; margin-top: 2px;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 18 18' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 9l3 3 5-5' stroke='%23a3e635' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-size: cover;
+    }
+    .plan-cta-wrap { margin-top: auto; }
+
+    /* ── WHY WORKS ── */
+    #why { background: var(--bg2); }
+    #why-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; }
+    .why-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px; margin-top: 60px;
+    }
+    .why-card {
+      padding: 40px 36px; border: 1px solid var(--border);
+      border-radius: 20px; background: var(--surface);
+      transition: border-color .25s;
+    }
+    .why-card:hover { border-color: var(--border2); }
+    .why-card-accent {
+      display: block; width: 24px; height: 2px;
+      background: var(--accent); border-radius: 2px;
+      margin-bottom: 24px;
+    }
+    .why-card blockquote {
+      font-size: 1.15rem; font-weight: 700; line-height: 1.5;
+      margin-bottom: 14px; letter-spacing: -0.01em;
+    }
+    .why-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── EXPERTS ── */
+    #experts { max-width: 1120px; margin: 0 auto; }
+    .experts-inner {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 28px; padding: 64px 56px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px;
+      align-items: center;
+    }
+    .experts-list {
+      list-style: none; display: flex; flex-direction: column; gap: 16px;
+      margin-top: 32px;
+    }
+    .experts-list li {
+      font-size: 0.95rem; display: flex; align-items: flex-start; gap: 12px;
+      color: var(--muted);
+    }
+    .experts-list li::before {
+      content: ''; width: 20px; height: 20px; border-radius: 6px;
+      background: var(--accent-bg); border: 1px solid var(--accent-dim);
+      flex-shrink: 0; margin-top: 2px;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 10l4 4 6-7' stroke='%23a3e635' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-size: cover;
+    }
+    /* ── Expert mockup ── */
+    .experts-mockup {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mock-phone {
+      width: 300px;
+      background: #0f1109;
+      border: 1px solid rgba(255,255,255,0.11);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.04),
+        0 32px 80px rgba(0,0,0,0.6),
+        0 0 60px rgba(163,230,53,0.04);
+      position: relative;
+    }
+    /* phone top bar */
+    .mock-phone-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: #0f1109;
+    }
+    .mock-phone-title {
+      font-size: 1rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em;
+    }
+    .mock-phone-title span { color: var(--accent); }
+    .mock-phone-badge {
+      font-size: 0.68rem; font-weight: 700; color: rgba(238,238,233,0.4);
+      background: rgba(255,255,255,0.05); padding: 3px 10px;
+      border-radius: 100px; border: 1px solid rgba(255,255,255,0.07);
+    }
+    /* stats zone */
+    .mock-stats-zone { padding: 14px 16px 4px; }
+    .mock-stats-heading {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.09em;
+      text-transform: uppercase; color: rgba(238,238,233,0.3);
+      margin-bottom: 10px;
+    }
+    .mock-stat-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+    .mock-stat-card {
+      background: #171a12; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px; padding: 10px 10px 12px;
+      text-align: center;
+    }
+    .mock-stat-num {
+      font-size: 1.4rem; font-weight: 800; letter-spacing: -0.03em;
+      color: var(--text); line-height: 1; margin-bottom: 4px;
+    }
+    .mock-stat-num.zero { color: rgba(238,238,233,0.25); }
+    .mock-stat-caption { font-size: 0.6rem; color: rgba(238,238,233,0.35); line-height: 1.3; }
+    /* divider */
+    .mock-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 12px 16px 0; }
+    /* clients section */
+    .mock-clients-zone { padding: 12px 16px 4px; }
+    .mock-zone-label {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.09em;
+      text-transform: uppercase; color: rgba(238,238,233,0.3); margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .mock-zone-action {
+      font-size: 0.65rem; font-weight: 700; color: var(--accent);
+      background: rgba(163,230,53,0.08); padding: 2px 9px;
+      border-radius: 100px; letter-spacing: 0; text-transform: none;
+    }
+    .mock-client-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 12px;
+      background: #171a12; border: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 6px;
+    }
+    .mock-avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, #222616, #1a1e11);
+      border: 1px solid rgba(163,230,53,0.22);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 800; color: var(--accent);
+    }
+    .mock-client-info { flex: 1; }
+    .mock-client-name { font-size: 0.82rem; font-weight: 700; color: var(--text); }
+    .mock-client-meta { font-size: 0.68rem; color: rgba(238,238,233,0.35); margin-top: 1px; }
+    .mock-status-pill {
+      font-size: 0.62rem; font-weight: 700; color: var(--accent);
+      background: rgba(163,230,53,0.09); padding: 3px 9px;
+      border-radius: 100px; border: 1px solid rgba(163,230,53,0.17);
+      white-space: nowrap;
+    }
+    /* alert zone */
+    .mock-alert-zone { padding: 4px 16px 18px; }
+    .mock-alert-card {
+      background: rgba(163,230,53,0.04);
+      border: 1px solid rgba(163,230,53,0.12);
+      border-radius: 12px; padding: 10px 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .mock-alert-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); flex-shrink: 0;
+      box-shadow: 0 0 6px rgba(163,230,53,0.5);
+    }
+    .mock-alert-text { font-size: 0.72rem; color: rgba(238,238,233,0.55); line-height: 1.4; }
+    .mock-alert-text strong { color: var(--text); font-weight: 600; }
+    /* glow behind phone */
+    .mock-glow {
+      position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%);
+      width: 200px; height: 80px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(163,230,53,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    @media (max-width: 900px) {
+      .experts-mockup { margin-top: 8px; }
+    }
+    @media (max-width: 480px) {
+      .mock-phone { width: 260px; }
+      .mock-stat-num { font-size: 1.2rem; }
+    }
+
+    /* ── FAQ ── */
+    #faq { background: var(--bg2); }
+    #faq-inner { max-width: 720px; margin: 0 auto; padding: 100px 40px; }
+    .faq-list { margin-top: 56px; border-top: 1px solid var(--border); }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q {
+      width: 100%; background: none; border: none; color: var(--text);
+      font-family: inherit; font-size: 1rem; font-weight: 600;
+      text-align: left; padding: 24px 0; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; transition: color .2s;
+    }
+    .faq-q:hover { color: var(--accent); }
+    .faq-q svg { flex-shrink: 0; transition: transform .3s; }
+    .faq-q.open svg { transform: rotate(45deg); }
+    .faq-a {
+      font-size: 0.93rem; color: var(--muted); line-height: 1.75;
+      max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .35s ease;
+    }
+    .faq-a.open { max-height: 400px; padding-bottom: 24px; }
+
+    /* ── FOOTER CTA ── */
+    #footer-cta {
+      background: linear-gradient(135deg, var(--accent-bg) 0%, transparent 60%);
+      border-top: 1px solid var(--border);
+    }
+    #footer-cta-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; text-align: center; }
+    #footer-cta .section-title { max-width: 600px; margin: 0 auto 20px; }
+    #footer-cta .section-sub { margin: 0 auto 48px; text-align: center; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--bg); border-top: 1px solid var(--border);
+      padding: 56px 40px;
+    }
+    .footer-inner {
+      max-width: 1120px; margin: 0 auto;
+      display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 48px;
+    }
+    .footer-brand .logo { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 12px; }
+    .footer-brand .logo span { color: var(--accent); }
+    .footer-brand p { font-size: 0.85rem; color: var(--muted); line-height: 1.7; max-width: 280px; }
+    .footer-col h4 { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+    .footer-col a {
+      display: block; font-size: 0.88rem; color: var(--text);
+      text-decoration: none; margin-bottom: 10px;
+      opacity: 0.7; transition: opacity .2s;
+    }
+    .footer-col a:hover { opacity: 1; }
+    .footer-bottom {
+      max-width: 1120px; margin: 40px auto 0;
+      padding-top: 28px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.8rem; color: var(--muted); flex-wrap: wrap; gap: 12px;
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      nav { padding: 16px 20px; }
+      section { padding: 72px 20px; }
+      #how-inner, #features-inner, #why-inner, #faq-inner, #footer-cta-inner { padding: 72px 20px; }
+      .hero-title { font-size: 2.4rem; }
+      .steps { grid-template-columns: 1fr 1fr; gap: 2px; }
+      .step:first-child { border-radius: 16px 0 0 0; }
+      .step:nth-child(2) { border-radius: 0 16px 0 0; }
+      .step:nth-child(3) { border-radius: 0 0 0 16px; }
+      .step:last-child { border-radius: 0 0 16px 0; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .feature:nth-child(1) { border-radius: 16px 0 0 0; }
+      .feature:nth-child(2) { border-radius: 0 16px 0 0; }
+      .feature:nth-child(5) { border-radius: 0 0 0 16px; }
+      .feature:nth-child(6) { border-radius: 0 0 16px 0; }
+      .feature:nth-child(3) { border-radius: 0; }
+      .feature:nth-child(4) { border-radius: 0; }
+      .experts-inner { grid-template-columns: 1fr; gap: 36px; padding: 40px 28px; }
+      .experts-visual { aspect-ratio: auto; min-height: 160px; }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+      .footer-brand { grid-column: 1 / -1; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+    }
+    @media (max-width: 480px) {
+      .hero-title { font-size: 2rem; }
+      .hero-buttons { flex-direction: column; }
+      .hero-buttons a { justify-content: center; }
+      .steps { grid-template-columns: 1fr; gap: 2px; }
+      .step:first-child { border-radius: 16px 16px 0 0; }
+      .step:nth-child(2) { border-radius: 0; }
+      .step:nth-child(3) { border-radius: 0; }
+      .step:last-child { border-radius: 0 0 16px 16px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .feature { border-radius: 0 !important; }
+      .feature:first-child { border-radius: 16px 16px 0 0 !important; }
+      .feature:last-child { border-radius: 0 0 16px 16px !important; }
+      .footer-inner { grid-template-columns: 1fr; }
+    }
+
+    /* ── Tweaks panel ── */
+    #tweaks-panel {
+      display: none; position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 20px; padding: 24px; width: 260px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    #tweaks-panel h3 { font-size: 0.85rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px; color: var(--accent); }
+    .tweak-row { margin-bottom: 14px; }
+    .tweak-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; display: block; }
+    .tweak-row input[type=color] { width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg3); cursor: pointer; padding: 2px; }
+    .tweak-row select {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+      font-family: inherit; font-size: 0.85rem; padding: 8px 12px; border-radius: 8px; cursor: pointer;
+    }
+    .tweak-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .tweak-toggle input { width: 36px; height: 20px; appearance: none; -webkit-appearance: none;
+      background: var(--border); border-radius: 100px; cursor: pointer; position: relative; transition: background .2s; }
+    .tweak-toggle input:checked { background: var(--accent); }
+    .tweak-toggle input::after { content: ''; width: 14px; height: 14px; border-radius: 50%;
+      background: white; position: absolute; top: 3px; left: 3px; transition: transform .2s; }
+    .tweak-toggle input:checked::after { transform: translateX(16px); }
+  </style>
+</head>
+<body>
+
+<!-- Background decoration -->
+<div class="hero-grid-bg"></div>
+<div class="hero-glow"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">EAT<span>LY</span></a>
+  <a href="https://t.me/EATLYY_bot" class="nav-cta" target="_blank" rel="noopener">
+    Открыть приложение
+    <svg width="14" height="14" fill="none" viewBox="0 0 14 14"><path d="M3 11L11 3M11 3H5M11 3v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+</nav>
+
+<!-- HERO -->
+<section id="hero" style="padding-left:40px;padding-right:40px;">
+  <div class="hero-eyebrow">
+    <span class="hero-dot"></span>
+    Контроль питания нового поколения
+  </div>
+  <h1 class="hero-title">Контроль питания,<br/>который помогает<br/><em>дойти до результата</em></h1>
+  <p class="hero-sub">Фиксируй еду, понимай ошибки в рационе и держи режим сам — или подключи эксперта, чтобы двигаться быстрее и с меньшим количеством срывов.</p>
+  <div class="hero-buttons">
+    <a href="https://t.me/EATLYY_bot" class="btn-primary" target="_blank" rel="noopener">
+      Открыть приложение
+      <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <a href="#how" class="btn-ghost">Как это работает</a>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<div id="how" style="background:var(--bg2);">
+  <div id="how-inner">
+    <div class="section-label">Как это работает</div>
+    <h2 class="section-title">Просто. Быстро.<br/>Без лишнего.</h2>
+    <p class="section-sub">Четыре шага до понятного питания — без сложных настроек и часов ввода данных.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <h3>Добавляй еду</h3>
+        <p>Текстом, фото или быстрым поиском. EATLY распознаёт и считает сам.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg></div>
+        <h3>Видь БЖУ и калории</h3>
+        <p>Мгновенная сводка по каждому приёму пищи и за день в целом.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+        <h3>Следи за прогрессом</h3>
+        <p>Статистика за неделю, месяц, история веса. Видишь тренд — понимаешь, что работает.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Подключи эксперта</h3>
+        <p>Тренер или нутрициолог видит твой рацион и помогает держать курс без срывов.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOR WHO -->
+<section id="for-who">
+  <div class="section-label">Для кого</div>
+  <h2 class="section-title">EATLY подходит<br/>каждому</h2>
+  <div class="audience-grid">
+    <div class="audience-card">
+      <div class="audience-tag">Самостоятельно</div>
+      <h3>Хочу контролировать питание сам</h3>
+      <p>Удобный дневник питания с AI-анализом, статистикой и напоминаниями. Понятно, что идёт не так — и как это исправить.</p>
+    </div>
+    <div class="audience-card">
+      <div class="audience-tag">С экспертом</div>
+      <h3>Хочу результат быстрее</h3>
+      <p>Подключи нутрициолога или тренера — он видит твой рацион в реальном времени, замечает ошибки и помогает держать режим.</p>
+    </div>
+    <div class="audience-card">
+      <div class="audience-tag">Эксперты</div>
+      <h3>Тренирую и консультирую</h3>
+      <p>Видь рацион клиентов, давай обратную связь быстро, помогай эффективнее. Меньше рутины — больше результата.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<div id="features" style="background:var(--bg2);">
+  <div id="features-inner">
+    <div class="section-label">Преимущества</div>
+    <h2 class="section-title">Почему EATLY удобнее<br/>обычного дневника</h2>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+        <h3>Быстрое добавление еды</h3>
+        <p>Фото, текст или голос — распознавание за секунды, без ручного поиска.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z"/></svg></div>
+        <h3>AI-помощь в рационе</h3>
+        <p>Умные подсказки: где перебор, где дефицит, что стоит скорректировать.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></div>
+        <h3>Понятная статистика</h3>
+        <p>Не таблицы — а чёткий визуал: динамика за неделю, история веса, тренды.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+        <h3>Контроль прогресса</h3>
+        <p>Видишь, насколько близко к цели. Мотивирует держать курс каждый день.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Поддержка эксперта</h3>
+        <p>Тренер видит твой рацион и помогает именно там, где нужна помощь.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <h3>Меньше ручной рутины</h3>
+        <p>Напоминания, быстрый ввод, синхронизация — ничего не забудешь и не потеряешь.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-label">Тарифы</div>
+  <h2 class="section-title">Выбери свой формат</h2>
+  <p class="section-sub">Начни самостоятельно или сразу с поддержкой эксперта — оба варианта дают результат.</p>
+  <div class="pricing-grid">
+    <div class="plan">
+      <div>
+        <div class="plan-name">Optimal</div>
+        <div class="plan-price">399 ₽<span> / мес</span></div>
+        <div class="plan-desc">Самостоятельный контроль питания с сильными инструментами.</div>
+      </div>
+      <ul class="plan-features">
+        <li>Фотоанализ еды</li>
+        <li>AI-подсказки по рациону</li>
+        <li>История веса и прогресса</li>
+        <li>Напоминания, чтобы не выпадать из режима</li>
+      </ul>
+      <div class="plan-cta-wrap">
+        <a href="https://t.me/EATLYY_bot" class="btn-ghost" style="width:100%;justify-content:center;" target="_blank" rel="noopener">Начать</a>
+      </div>
+    </div>
+
+    <div class="plan featured" style="position:relative;">
+      <div class="plan-badge">Рекомендуем</div>
+      <div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">499 ₽<span> / мес</span></div>
+        <div class="plan-desc">Контроль питания с экспертом рядом — быстрее к результату.</div>
+      </div>
+      <ul class="plan-features">
+        <li>Всё из Optimal</li>
+        <li>Эксперт видит ваш рацион</li>
+        <li>Быстрая корректировка ошибок</li>
+        <li>Меньше срывов, больше дисциплины</li>
+        <li>Быстрее путь к результату</li>
+      </ul>
+      <div class="plan-cta-wrap">
+        <a href="https://t.me/EATLYY_bot" class="btn-primary" style="width:100%;justify-content:center;" target="_blank" rel="noopener">Попробовать Pro</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY IT WORKS -->
+<div id="why" style="background:var(--bg2);">
+  <div id="why-inner">
+    <div class="section-label">Почему это работает</div>
+    <h2 class="section-title">Питание под контролем —<br/>результат предсказуем</h2>
+    <div class="why-grid">
+      <div class="why-card">
+        <span class="why-card-accent"></span>
+        <blockquote>Хаос в питании — главная причина срывов</blockquote>
+        <p>Когда не понимаешь, что и сколько ешь — легко выйти за рамки. EATLY делает питание видимым и понятным каждый день.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-card-accent"></span>
+        <blockquote>Данные помогают принимать решения</blockquote>
+        <p>Не "кажется, что правильно ем", а точная статистика: что работает, где перебор, что скорректировать.</p>
+      </div>
+      <div class="why-card">
+        <span class="why-card-accent"></span>
+        <blockquote>С экспертом держать режим проще</blockquote>
+        <p>Когда кто-то видит твой рацион — ответственность выше, срывов меньше, а путь к цели короче.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPERTS -->
+<section id="experts">
+  <div class="experts-inner">
+    <div>
+      <div class="section-label">Для экспертов</div>
+      <h2 class="section-title" style="font-size:clamp(1.8rem,3vw,2.4rem);">Работай с клиентами<br/>эффективнее</h2>
+      <p class="section-sub">EATLY даёт тренерам и нутрициологам инструменты для реального контроля питания клиентов — без лишней переписки.</p>
+      <ul class="experts-list">
+        <li>Видишь рацион клиента в реальном времени</li>
+        <li>Быстро замечаешь и исправляешь ошибки</li>
+        <li>Даёшь точечную обратную связь</li>
+        <li>Клиенты держат режим — ты видишь прогресс</li>
+      </ul>
+      <div style="margin-top:36px; display:flex; gap:14px; flex-wrap:wrap;">
+        <a href="#" class="btn-primary">Стать экспертом EATLY</a>
+      </div>
+    </div>
+    <div class="experts-mockup">
+      <div class="mock-glow"></div>
+      <div class="mock-phone">
+        <!-- Top bar -->
+        <div class="mock-phone-bar">
+          <span class="mock-phone-title">EAT<span>LY</span> Expert</span>
+          <span class="mock-phone-badge">Кабинет</span>
+        </div>
+        <!-- Stats -->
+        <div class="mock-stats-zone">
+          <div class="mock-stats-heading">Статистика</div>
+          <div class="mock-stat-cards">
+            <div class="mock-stat-card">
+              <div class="mock-stat-num">1</div>
+              <div class="mock-stat-caption">Всего клиентов</div>
+            </div>
+            <div class="mock-stat-card">
+              <div class="mock-stat-num zero">0</div>
+              <div class="mock-stat-caption">Записали сегодня</div>
+            </div>
+            <div class="mock-stat-card">
+              <div class="mock-stat-num">1</div>
+              <div class="mock-stat-caption">Не записали</div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-divider"></div>
+        <!-- Clients -->
+        <div class="mock-clients-zone">
+          <div class="mock-zone-label">
+            Клиенты
+            <span class="mock-zone-action">+ Добавить</span>
+          </div>
+          <div class="mock-client-item">
+            <div class="mock-avatar">К</div>
+            <div class="mock-client-info">
+              <div class="mock-client-name">Кристина</div>
+              <div class="mock-client-meta">48 кг</div>
+            </div>
+            <span class="mock-status-pill">Активна</span>
+          </div>
+        </div>
+        <div class="mock-divider"></div>
+        <!-- Alert -->
+        <div class="mock-alert-zone">
+          <div class="mock-zone-label" style="margin-bottom:8px;">Не записали сегодня</div>
+          <div class="mock-alert-card">
+            <div class="mock-alert-dot"></div>
+            <div class="mock-alert-text"><strong>Кристина</strong> не добавила еду сегодня</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<div id="faq" style="background:var(--bg2);">
+  <div id="faq-inner">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">Частые вопросы</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Что такое EATLY?
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div class="faq-a">
+          EATLY — это Telegram-бот и мини-приложение для контроля питания. Фиксируй еду, считай калории и БЖУ, следи за прогрессом — самостоятельно или с экспертом рядом.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Чем EATLY отличается от обычного дневника питания?
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div class="faq-a">
+          Обычный дневник просто записывает. EATLY анализирует: находит ошибки в рационе, показывает тренды, даёт AI-подсказки. А тариф Pro добавляет живого эксперта, который видит всё и помогает держать курс.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Можно пользоваться без эксперта?
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div class="faq-a">
+          Да, тариф Optimal — полноценный инструмент для самостоятельного контроля питания. Фотоанализ, статистика, AI-подсказки, напоминания. Эксперт — опция, а не обязательное условие.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Что даёт тариф Pro?
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div class="faq-a">
+          В Pro подключается эксперт — нутрициолог или тренер. Он видит твой рацион в реальном времени, замечает ошибки, даёт обратную связь. Режим держать проще, срывов меньше, к цели приходишь быстрее.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Как добавить еду?
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div class="faq-a">
+          Три способа: сфотографировать блюдо, написать название текстом или найти в базе продуктов. EATLY распознаёт и рассчитывает КБЖУ автоматически — без ручного ввода граммов.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Как начать?
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div class="faq-a">
+          Открой бот в Telegram по кнопке на сайте, запусти его и следуй инструкции. На настройку уходит 2 минуты — укажи цель, параметры, и можно добавлять первый приём пищи.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL CTA -->
+<div id="footer-cta">
+  <div id="footer-cta-inner">
+    <div class="section-label" style="display:block;text-align:center;">Начни сегодня</div>
+    <h2 class="section-title">Меньше хаоса.<br/>Больше контроля.</h2>
+    <p class="section-sub">Первый шаг к понятному питанию — открыть EATLY и добавить первый приём пищи.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <a href="https://t.me/EATLYY_bot" class="btn-primary" target="_blank" rel="noopener">
+        Открыть приложение
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a href="#" class="btn-ghost">Стать экспертом</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo">EAT<span>LY</span></div>
+      <p>Контроль питания без хаоса — самостоятельно или с экспертом.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Продукт</h4>
+      <a href="https://t.me/EATLYY_bot" target="_blank" rel="noopener">Открыть бот</a>
+      <a href="#pricing">Тарифы</a>
+      <a href="#how">Как работает</a>
+      <a href="#experts">Для экспертов</a>
+    </div>
+    <div class="footer-col">
+      <h4>Документы</h4>
+      <a href="#">Политика конфиденциальности</a>
+      <a href="#">Условия использования</a>
+      <a href="#">Контакты</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 EATLY. Все права защищены.</span>
+    <span>Telegram: <a href="https://t.me/EATLYY_bot" style="color:var(--accent);text-decoration:none;">@eatly_bot</a></span>
+  </div>
+</footer>
+
+<!-- TWEAKS PANEL -->
+<div id="tweaks-panel">
+  <h3>Tweaks</h3>
+  <div class="tweak-row">
+    <label class="tweak-label">Акцентный цвет</label>
+    <input type="color" id="tw-accent" value="#a3e635" oninput="applyTweak('accent', this.value)" />
+  </div>
+  <div class="tweak-row">
+    <label class="tweak-label">Фон страницы</label>
+    <select id="tw-bg" onchange="applyTweak('bg', this.value)">
+      <option value="#0c0d0b">Почти чёрный (по умолчанию)</option>
+      <option value="#080c0e">Тёмно-синий</option>
+      <option value="#0e0c0b">Тёплый тёмный</option>
+      <option value="#0d0d0d">Нейтральный чёрный</option>
+    </select>
+  </div>
+  <div class="tweak-row tweak-toggle">
+    <label class="tweak-label" style="margin:0">Подчеркнуть Pro-тариф</label>
+    <input type="checkbox" id="tw-pro" checked onchange="applyTweak('proHighlight', this.checked)" />
+  </div>
+</div>
+
+<script>
+  // ── FAQ accordion ──
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const isOpen = btn.classList.contains('open');
+    document.querySelectorAll('.faq-q.open').forEach(b => {
+      b.classList.remove('open');
+      b.nextElementSibling.classList.remove('open');
+    });
+    if (!isOpen) {
+      btn.classList.add('open');
+      btn.nextElementSibling.classList.add('open');
+    }
+  }
+
+  // ── Tweaks ──
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "accent": "#a3e635",
+    "bg": "#0c0d0b",
+    "proHighlight": true
+  }/*EDITMODE-END*/;
+
+  function applyTweak(key, value) {
+    const state = Object.assign({}, TWEAK_DEFAULTS);
+    state[key] = value;
+    if (key === 'accent') {
+      document.documentElement.style.setProperty('--accent', value);
+    }
+    if (key === 'bg') {
+      document.documentElement.style.setProperty('--bg', value);
+      const r = parseInt(value.slice(1,3),16), g = parseInt(value.slice(3,5),16), b = parseInt(value.slice(5,7),16);
+      document.documentElement.style.setProperty('--bg2', `rgb(${Math.min(r+5,255)},${Math.min(g+6,255)},${Math.min(b+4,255)})`);
+      document.documentElement.style.setProperty('--bg3', `rgb(${Math.min(r+10,255)},${Math.min(g+11,255)},${Math.min(b+9,255)})`);
+      document.documentElement.style.setProperty('--surface', `rgb(${Math.min(r+14,255)},${Math.min(g+16,255)},${Math.min(b+12,255)})`);
+    }
+    if (key === 'proHighlight') {
+      const featured = document.querySelector('.plan.featured');
+      if (featured) {
+        featured.style.border = value ? '1px solid var(--accent)' : '1px solid var(--border)';
+        featured.style.background = value ? 'var(--accent-bg)' : 'transparent';
+      }
+    }
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: value } }, '*');
+  }
+
+  window.addEventListener('message', e => {
+    if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks-panel').style.display = 'block';
+    if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks-panel').style.display = 'none';
+  });
+  window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+  // Apply saved defaults
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('tw-accent').value = TWEAK_DEFAULTS.accent;
+    document.getElementById('tw-bg').value = TWEAK_DEFAULTS.bg;
+    document.getElementById('tw-pro').checked = TWEAK_DEFAULTS.proHighlight;
+  });
+</script>
+</body>
+</html>
