@@ -1,0 +1,8 @@
+name = "eatlyy-landing"
+compatibility_date = "2024-01-01"
+
+# Cloudflare Pages — static site
+# Deploy command: npx wrangler pages deploy .
+# Or connect the repo in Cloudflare Pages dashboard (recommended)
+# Build command: (none)
+# Output directory: . (root)
