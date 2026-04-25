@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EATLYY — Контроль питания без срывов и ручного подсчёта</title>
+  <meta name="description" content="AI-дневник питания в Telegram и MAX. Фото или текст — EATLYY посчитает КБЖУ, покажет прогресс и поможет держать систему питания." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <template id="__bundler_thumbnail" data-bg-color="#0c0d0b">
+    <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="260" fill="#0c0d0b"/>
+      <text x="160" y="140" font-family="sans-serif" font-weight="800" font-size="52" fill="#eeeee9" text-anchor="middle" letter-spacing="-2">EAT</text>
+      <text x="248" y="140" font-family="sans-serif" font-weight="800" font-size="52" fill="#a3e635" text-anchor="middle" letter-spacing="-2">LYY</text>
+      <rect x="140" y="158" width="120" height="3" rx="2" fill="#a3e635" opacity="0.4"/>
+    </svg>
+  </template>
+  <style>
+    /* ─── CONSTANTS ─── APP: https://t.me/EATLYY_bot · EMAIL: info@eatlyy.ru */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0c0d0b;
+      --bg2:        #111310;
+      --bg3:        #161714;
+      --surface:    #1a1c18;
+      --border:     rgba(255,255,255,0.07);
+      --border2:    rgba(255,255,255,0.13);
+      --text:       #eeeee9;
+      --muted:      rgba(238,238,233,0.5);
+      --accent:     oklch(78% 0.22 128);
+      --accent-dim: oklch(78% 0.22 128 / 0.14);
+      --accent-bg:  oklch(78% 0.22 128 / 0.08);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── DECORATIVE ── */
+    .hero-grid-bg {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; pointer-events: none;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 80px 80px; opacity: 0.3;
+    }
+    .hero-glow {
+      position: fixed; top: -25vh; left: 5vw; width: 55vw; height: 55vh;
+      border-radius: 50%; z-index: -1; pointer-events: none;
+      background: radial-gradient(circle, oklch(78% 0.22 128 / 0.055) 0%, transparent 70%);
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 16px 40px;
+      display: flex; align-items: center; justify-content: space-between; gap: 24px;
+      background: rgba(12,13,11,0.92);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); text-decoration: none; flex-shrink: 0; }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 28px; list-style: none; flex: 1; justify-content: center; }
+    .nav-links a { font-size: 0.85rem; font-weight: 500; color: var(--muted); text-decoration: none; transition: color .2s; white-space: nowrap; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #0c0d0b;
+      font-size: 0.85rem; font-weight: 700;
+      padding: 10px 22px; border-radius: 100px; text-decoration: none;
+      flex-shrink: 0; position: relative; overflow: hidden;
+      transition: opacity .2s, transform .15s;
+    }
+    .nav-cta:hover { opacity: 0.88; transform: translateY(-1px); }
+    .nav-cta::after { content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%; background: linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent); transform: skewX(-20deg); transition: left 0s; }
+    .nav-cta:hover::after { left: 160%; transition: left .45s ease; }
+
+    /* ── BUTTONS ── */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 9px;
+      background: var(--accent); color: #0c0d0b;
+      font-family: inherit; font-size: 1rem; font-weight: 700;
+      padding: 17px 34px; border-radius: 100px; border: none;
+      cursor: pointer; text-decoration: none;
+      position: relative; overflow: hidden;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-primary::after { content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%; background: linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent); transform: skewX(-20deg); transition: left 0s; }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-primary:hover::after { left: 160%; transition: left .5s ease; }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--text);
+      font-family: inherit; font-size: 1rem; font-weight: 500;
+      padding: 17px 34px; border-radius: 100px; border: 1px solid var(--border2);
+      cursor: pointer; text-decoration: none;
+      transition: border-color .2s, background .2s, transform .15s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); background: var(--accent-bg); transform: translateY(-1px); }
+    .btn-ghost:active { transform: scale(0.97); }
+
+    /* ── SECTIONS ── */
+    section { padding: 100px 40px; max-width: 1120px; margin: 0 auto; }
+    .section-label { display: inline-block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; }
+    .section-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px; }
+    .section-sub { font-size: 1.1rem; color: var(--muted); max-width: 560px; line-height: 1.7; }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: grid; grid-template-columns: 1fr 480px; gap: 60px; align-items: center;
+      padding: 120px 40px 80px;
+      max-width: 1200px; margin: 0 auto;
+    }
+    .hero-left {}
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent-dim); border: 1px solid var(--accent-bg);
+      border-radius: 100px; padding: 6px 16px;
+      font-size: 0.8rem; font-weight: 600; color: var(--accent);
+      margin-bottom: 32px; width: fit-content;
+    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.35} }
+    .hero-title {
+      font-size: clamp(2.6rem, 5.5vw, 4.4rem);
+      font-weight: 800; letter-spacing: -0.04em; line-height: 1.05;
+      margin-bottom: 28px; max-width: 680px;
+    }
+    .hero-title em { font-style: normal; color: var(--accent); }
+    .hero-sub { font-size: clamp(1rem, 1.8vw, 1.15rem); color: var(--muted); max-width: 520px; line-height: 1.75; margin-bottom: 40px; }
+    .hero-cta-group { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .hero-scroll-link { font-size: 0.88rem; color: var(--muted); text-decoration: none; border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
+    .hero-scroll-link:hover { color: var(--text); border-color: var(--border2); }
+    .hero-note { margin-top: 16px; font-size: 0.78rem; color: rgba(238,238,233,0.3); }
+
+    /* ── REAL PRODUCT PHONE FRAME ── */
+    .hero-right { position: relative; display: flex; align-items: center; justify-content: center; }
+    .phone-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+    .phone-frame {
+      width: 272px;
+      background: #000;
+      border-radius: 44px;
+      border: 6px solid #1c1c1e;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.14),
+        0 0 0 2px rgba(0,0,0,0.8),
+        0 48px 120px rgba(0,0,0,0.8),
+        0 0 80px rgba(163,230,53,0.07);
+      overflow: hidden;
+      position: relative;
+    }
+    .phone-frame img { display: block; width: 100%; height: auto; }
+    .phone-frame-side {
+      position: absolute; right: -8px; top: 80px; width: 3px; height: 48px;
+      background: #2a2a2a; border-radius: 2px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .phone-frame-side2 { top: 140px; }
+    .phone-glow {
+      position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%);
+      width: 220px; height: 100px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(163,230,53,0.1) 0%, transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+    /* AI demo real screen */
+    .ai-demo-phone-wrap { display: flex; align-items: center; justify-content: center; }
+    .ai-demo-phone {
+      width: 252px;
+      background: #000; border-radius: 40px;
+      border: 5px solid #1c1c1e;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.12),
+        0 0 0 2px rgba(0,0,0,0.8),
+        0 36px 90px rgba(0,0,0,0.75),
+        0 0 60px rgba(163,230,53,0.06);
+      overflow: hidden;
+    }
+    .ai-demo-phone img { display: block; width: 100%; height: auto; }
+
+    /* ── SOCIAL PROOF ── */
+    #proof { background: var(--bg2); }
+    #proof-inner { max-width: 1120px; margin: 0 auto; padding: 72px 40px; }
+    .proof-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 48px; }
+    .proof-stat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px 24px; text-align: center;
+    }
+    .proof-stat .n { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.04em; color: var(--accent); line-height: 1; margin-bottom: 6px; }
+    .proof-stat .l { font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
+    .proof-quotes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+    .proof-quote {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px 28px;
+      transition: border-color .25s;
+    }
+    .proof-quote:hover { border-color: var(--border2); }
+    .proof-q-text { font-size: 0.95rem; line-height: 1.65; color: var(--text); margin-bottom: 16px; font-style: italic; }
+    .proof-q-text::before { content: '"'; color: var(--accent); font-style: normal; }
+    .proof-q-text::after { content: '"'; color: var(--accent); font-style: normal; }
+    .proof-q-author { display: flex; align-items: center; gap: 10px; }
+    .proof-q-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent-bg); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; color: var(--accent); flex-shrink: 0; }
+    .proof-q-name { font-size: 0.82rem; font-weight: 700; }
+    .proof-q-role { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── ПРОБЛЕМА ── */
+    #problem { background: var(--bg); }
+    #problem-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; }
+    .problem-lead { font-size: clamp(1.1rem, 2vw, 1.35rem); font-weight: 600; line-height: 1.6; max-width: 680px; margin-bottom: 56px; color: var(--text); }
+    .problem-lead em { font-style: normal; color: var(--accent); }
+    .problem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2px; }
+    .problem-card { background: var(--surface); padding: 40px 36px; transition: background .2s; }
+    .problem-card:first-child { border-radius: 16px 0 0 16px; }
+    .problem-card:last-child { border-radius: 0 16px 16px 0; }
+    .problem-card:hover { background: #1e2019; }
+    .problem-ico { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: var(--muted); margin-bottom: 20px; }
+    .problem-ico svg { width: 26px; height: 26px; }
+    .problem-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .problem-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── AI DEMO ── */
+    #ai-demo { background: var(--bg2); }
+    #ai-demo-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; }
+    .ai-demo-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; margin-top: 56px; }
+    .ai-flow { display: flex; flex-direction: column; gap: 12px; }
+    .ai-flow-step {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 20px 24px; border-radius: 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      transition: border-color .25s, transform .2s;
+    }
+    .ai-flow-step:hover { border-color: var(--border2); transform: translateX(4px); }
+    .ai-flow-num {
+      width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+      background: var(--accent-bg); border: 1px solid var(--accent-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 800; color: var(--accent);
+    }
+    .ai-flow-text h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 4px; }
+    .ai-flow-text p { font-size: 0.82rem; color: var(--muted); line-height: 1.55; }
+    .ai-flow-arrow { text-align: center; color: var(--border2); font-size: 1.2rem; line-height: 1; padding: 0 0 0 22px; }
+
+    /* AI demo card */
+    .ai-demo-card {
+      background: #0f1a24; border: 1px solid rgba(163,230,53,0.18);
+      border-radius: 20px; padding: 28px; position: relative;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 40px rgba(163,230,53,0.04);
+    }
+    .ai-demo-card-header { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .ai-demo-card-header svg { width: 14px; height: 14px; }
+    .ai-demo-food { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(255,255,255,0.04); border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
+    .ai-demo-food-ico { width: 40px; height: 40px; border-radius: 10px; background: #1a2738; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ai-demo-food-ico svg { width: 20px; height: 20px; color: rgba(255,255,255,0.5); }
+    .ai-demo-food-name { font-size: 0.9rem; font-weight: 700; }
+    .ai-demo-food-weight { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .ai-demo-macros { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+    .ai-demo-macro { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px 8px; text-align: center; border: 1px solid var(--border); }
+    .ai-demo-macro .mv { font-size: 1.1rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+    .ai-demo-macro .ml { font-size: 0.62rem; color: var(--muted); margin-top: 3px; }
+    .ai-demo-macro.highlight { background: var(--accent-bg); border-color: var(--accent-dim); }
+    .ai-demo-macro.highlight .mv { color: var(--accent); }
+    .ai-demo-insights { display: flex; flex-direction: column; gap: 8px; }
+    .ai-demo-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 100px; font-size: 0.78rem; font-weight: 600;
+    }
+    .ai-demo-tag.warn { background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.2); color: #fb923c; }
+    .ai-demo-tag.ok { background: var(--accent-bg); border: 1px solid var(--accent-dim); color: var(--accent); }
+    .ai-demo-tag.info { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.15); color: #60a5fa; }
+    .ai-demo-tag svg { width: 13px; height: 13px; }
+
+    /* ── КАК РАБОТАЕТ ── */
+    #how { background: var(--bg); }
+    #how-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2px; margin-top: 60px; }
+    .step { background: var(--surface); padding: 40px 36px; position: relative; overflow: hidden; transition: background .2s; }
+    .step:hover { background: #1e2019; }
+    .step:first-child { border-radius: 16px 0 0 16px; }
+    .step:last-child { border-radius: 0 16px 16px 0; }
+    .step-num { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 20px; }
+    .step h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .step p { font-size: 0.9rem; color: var(--muted); line-height: 1.65; }
+    .step-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; color: var(--accent); }
+    .step-icon svg { width: 28px; height: 28px; }
+
+    /* ── ЧТО УМЕЕТ ── */
+    #features { background: var(--bg2); }
+    #features-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 60px; }
+    .feature { padding: 40px 36px; background: var(--surface); transition: background .2s; }
+    .feature:hover { background: #1e2019; }
+    .feature:nth-child(1) { border-radius: 16px 0 0 0; }
+    .feature:nth-child(3) { border-radius: 0 16px 0 0; }
+    .feature:nth-child(4) { border-radius: 0 0 0 16px; }
+    .feature:nth-child(6) { border-radius: 0 0 16px 0; }
+    .feature-ico { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; color: var(--accent); }
+    .feature-ico svg { width: 24px; height: 24px; }
+    .feature h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feature p { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── ДЛЯ КОГО ── */
+    #for-who { max-width: 1120px; margin: 0 auto; }
+    .audience-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 60px; }
+    .audience-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px 36px; transition: border-color .25s, background .25s; }
+    .audience-card:hover { border-color: var(--border2); background: #1e2019; }
+    .audience-tag { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: var(--accent-bg); color: var(--accent); padding: 4px 12px; border-radius: 100px; margin-bottom: 20px; }
+    .audience-card h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 12px; }
+    .audience-card p { font-size: 0.92rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── ПОЧЕМУ РАБОТАЕТ ── */
+    #why { background: var(--bg2); }
+    #why-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; }
+    .why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 60px; }
+    .why-card { padding: 40px 36px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); transition: border-color .25s; }
+    .why-card:hover { border-color: var(--border2); }
+    .why-card-accent { display: block; width: 24px; height: 2px; background: var(--accent); border-radius: 2px; margin-bottom: 24px; }
+    .why-card blockquote { font-size: 1.15rem; font-weight: 700; line-height: 1.5; margin-bottom: 14px; letter-spacing: -0.01em; }
+    .why-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── ДЛЯ ПРОФЕССИОНАЛОВ ── */
+    #professionals { max-width: 1120px; margin: 0 auto; }
+    .professionals-top { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 28px; padding: 64px 56px; margin-top: 60px; }
+    .professionals-list { list-style: none; display: flex; flex-direction: column; gap: 16px; margin-top: 32px; }
+    .professionals-list li { font-size: 0.95rem; display: flex; align-items: flex-start; gap: 12px; color: var(--muted); }
+    .professionals-list li::before { content: ''; width: 20px; height: 20px; border-radius: 6px; background: var(--accent-bg); border: 1px solid var(--accent-dim); flex-shrink: 0; margin-top: 2px; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 10l4 4 6-7' stroke='%23a3e635' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-size: cover; }
+    .professionals-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 36px; align-items: center; }
+    .professionals-email { font-size: 0.88rem; color: var(--muted); }
+    .professionals-email a { color: var(--accent); text-decoration: none; transition: opacity .2s; }
+    .professionals-email a:hover { opacity: 0.75; }
+    .professionals-mockup { position: relative; display: flex; align-items: center; justify-content: center; }
+    .professionals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 20px; }
+    .pro-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; display: flex; flex-direction: column; gap: 12px; transition: border-color .25s, transform .25s; }
+    .pro-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .pro-card-ico { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-bg); border: 1px solid var(--accent-dim); display: flex; align-items: center; justify-content: center; color: var(--accent); }
+    .pro-card-ico svg { width: 20px; height: 20px; }
+    .pro-card h3 { font-size: 0.95rem; font-weight: 700; }
+    .pro-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+
+    /* MOCK PHONE */
+    .mock-phone { width: 280px; background: #0f1109; border: 1px solid rgba(255,255,255,0.11); border-radius: 28px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.6), 0 0 60px rgba(163,230,53,0.04); }
+    .mock-phone-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); background: #0f1109; }
+    .mock-phone-title { font-size: 1rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+    .mock-phone-title span { color: var(--accent); }
+    .mock-phone-badge { font-size: 0.68rem; font-weight: 700; color: rgba(238,238,233,0.4); background: rgba(255,255,255,0.05); padding: 3px 10px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.07); }
+    .mock-stats-zone { padding: 14px 16px 4px; }
+    .mock-stats-heading { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(238,238,233,0.3); margin-bottom: 10px; }
+    .mock-stat-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+    .mock-stat-card { background: #171a12; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 10px 10px 12px; text-align: center; }
+    .mock-stat-num { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text); line-height: 1; margin-bottom: 4px; }
+    .mock-stat-num.zero { color: rgba(238,238,233,0.25); }
+    .mock-stat-caption { font-size: 0.6rem; color: rgba(238,238,233,0.35); line-height: 1.3; }
+    .mock-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 12px 16px 0; }
+    .mock-clients-zone { padding: 12px 16px 4px; }
+    .mock-zone-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(238,238,233,0.3); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .mock-zone-action { font-size: 0.65rem; font-weight: 700; color: var(--accent); background: rgba(163,230,53,0.08); padding: 2px 9px; border-radius: 100px; letter-spacing: 0; text-transform: none; }
+    .mock-client-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: #171a12; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 6px; }
+    .mock-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg, #222616, #1a1e11); border: 1px solid rgba(163,230,53,0.22); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; color: var(--accent); }
+    .mock-client-info { flex: 1; }
+    .mock-client-name { font-size: 0.82rem; font-weight: 700; color: var(--text); }
+    .mock-client-meta { font-size: 0.68rem; color: rgba(238,238,233,0.35); margin-top: 1px; }
+    .mock-status-pill { font-size: 0.62rem; font-weight: 700; color: var(--accent); background: rgba(163,230,53,0.09); padding: 3px 9px; border-radius: 100px; border: 1px solid rgba(163,230,53,0.17); white-space: nowrap; }
+    .mock-alert-zone { padding: 4px 16px 18px; }
+    .mock-alert-card { background: rgba(163,230,53,0.04); border: 1px solid rgba(163,230,53,0.12); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+    .mock-alert-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; box-shadow: 0 0 6px rgba(163,230,53,0.5); }
+    .mock-alert-text { font-size: 0.72rem; color: rgba(238,238,233,0.55); line-height: 1.4; }
+    .mock-alert-text strong { color: var(--text); font-weight: 600; }
+    .mock-glow { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 200px; height: 80px; border-radius: 50%; background: radial-gradient(ellipse, rgba(163,230,53,0.08) 0%, transparent 70%); pointer-events: none; }
+
+    /* ── PRICING BRIDGE ── */
+    .pricing-bridge {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px 40px; margin-bottom: 48px;
+      display: flex; align-items: center; justify-content: space-between; gap: 32px;
+      flex-wrap: wrap;
+    }
+    .pricing-bridge-text { font-size: 1.15rem; font-weight: 600; line-height: 1.5; max-width: 560px; }
+    .pricing-bridge-text em { font-style: normal; color: var(--accent); }
+
+    /* ── ТАРИФЫ ── */
+    #pricing { background: var(--bg); }
+    #pricing-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; max-width: 720px; }
+    .plan { border: 1px solid var(--border); border-radius: 24px; padding: 40px 36px; display: flex; flex-direction: column; gap: 28px; transition: border-color .25s, transform .2s; }
+    .plan:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .plan.featured { border-color: var(--accent); background: var(--accent-bg); position: relative; }
+    .plan-badge { position: absolute; top: -12px; left: 36px; background: var(--accent); color: #0c0d0b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 14px; border-radius: 100px; }
+    .plan-name { font-size: 0.85rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+    .plan-price { font-size: 2.8rem; font-weight: 800; letter-spacing: -0.04em; }
+    .plan-price span { font-size: 1rem; font-weight: 400; color: var(--muted); }
+    .plan-value { font-size: 0.82rem; color: var(--accent); font-weight: 600; margin-top: -8px; }
+    .plan-desc { font-size: 0.92rem; color: var(--muted); line-height: 1.6; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .plan-features li { font-size: 0.9rem; display: flex; align-items: flex-start; gap: 10px; }
+    .plan-features li::before { content: ''; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent-bg); flex-shrink: 0; margin-top: 2px; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 18 18' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 9l3 3 5-5' stroke='%23a3e635' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-size: cover; }
+    .plan-cta-wrap { margin-top: auto; }
+    .pricing-note { margin-top: 24px; font-size: 0.82rem; color: rgba(238,238,233,0.3); }
+
+    /* ── ДОВЕРИЕ ── */
+    #trust { background: var(--bg2); }
+    #trust-inner { max-width: 1120px; margin: 0 auto; padding: 72px 40px; }
+    .trust-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .trust-card { display: flex; align-items: flex-start; gap: 16px; padding: 28px 24px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+    .trust-ico { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; background: var(--accent-bg); border: 1px solid var(--accent-dim); display: flex; align-items: center; justify-content: center; color: var(--accent); }
+    .trust-ico svg { width: 18px; height: 18px; }
+    .trust-card h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+    .trust-card p { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+    .trust-card a { color: var(--accent); text-decoration: none; }
+    .trust-card a:hover { text-decoration: underline; }
+
+    /* ── FAQ ── */
+    #faq { background: var(--bg); }
+    #faq-inner { max-width: 720px; margin: 0 auto; padding: 100px 40px; }
+    .faq-list { margin-top: 56px; border-top: 1px solid var(--border); }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q { width: 100%; background: none; border: none; color: var(--text); font-family: inherit; font-size: 1rem; font-weight: 600; text-align: left; padding: 24px 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; transition: color .2s; }
+    .faq-q:hover { color: var(--accent); }
+    .faq-q svg { flex-shrink: 0; transition: transform .3s; }
+    .faq-q.open svg { transform: rotate(45deg); }
+    .faq-a { font-size: 0.93rem; color: var(--muted); line-height: 1.75; max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .35s ease; }
+    .faq-a.open { max-height: 400px; padding-bottom: 24px; }
+
+    /* ── FOOTER CTA ── */
+    #footer-cta { background: linear-gradient(135deg, var(--accent-bg) 0%, transparent 60%); border-top: 1px solid var(--border); }
+    #footer-cta-inner { max-width: 1120px; margin: 0 auto; padding: 100px 40px; text-align: center; }
+    #footer-cta .section-title { max-width: 600px; margin: 0 auto 20px; }
+    #footer-cta .section-sub { margin: 0 auto 48px; text-align: center; }
+
+    /* ── FOOTER ── */
+    footer { background: var(--bg); border-top: 1px solid var(--border); padding: 56px 40px; }
+    .footer-inner { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
+    .footer-brand .logo { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 12px; }
+    .footer-brand .logo span { color: var(--accent); }
+    .footer-brand p { font-size: 0.85rem; color: var(--muted); line-height: 1.7; max-width: 280px; }
+    .footer-brand-links { display: flex; gap: 8px; margin-top: 16px; }
+    .footer-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 100px;
+      font-size: 0.72rem; font-weight: 600; color: var(--muted); text-decoration: none;
+      transition: border-color .2s, color .2s;
+    }
+    .footer-badge:hover { border-color: var(--border2); color: var(--text); }
+    .footer-badge svg { width: 12px; height: 12px; }
+    .footer-col h4 { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+    .footer-col a { display: block; font-size: 0.88rem; color: var(--text); text-decoration: none; margin-bottom: 10px; opacity: 0.7; transition: opacity .2s; }
+    .footer-col a:hover { opacity: 1; }
+    .footer-bottom { max-width: 1120px; margin: 40px auto 0; padding-top: 28px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--muted); flex-wrap: wrap; gap: 12px; }
+
+    /* ── STICKY CTA (mobile) ── */
+    .sticky-cta {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+      background: rgba(12,13,11,0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      padding: 14px 20px; gap: 12px; align-items: center; justify-content: center;
+    }
+    .sticky-cta .btn-primary { width: 100%; justify-content: center; padding: 14px 24px; font-size: 0.95rem; }
+
+    /* ── TWEAKS ── */
+    #tweaks-panel { display: none; position: fixed; bottom: 24px; right: 24px; z-index: 999; background: var(--surface); border: 1px solid var(--border2); border-radius: 20px; padding: 24px; width: 260px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    #tweaks-panel h3 { font-size: 0.85rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px; color: var(--accent); }
+    .tweak-row { margin-bottom: 14px; }
+    .tweak-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; display: block; }
+    .tweak-row input[type=color] { width: 100%; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg3); cursor: pointer; padding: 2px; }
+    .tweak-row select { width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 0.85rem; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+    .tweak-toggle { display: flex; align-items: center; justify-content: space-between; }
+    .tweak-toggle input { width: 36px; height: 20px; appearance: none; -webkit-appearance: none; background: var(--border); border-radius: 100px; cursor: pointer; position: relative; transition: background .2s; }
+    .tweak-toggle input:checked { background: var(--accent); }
+    .tweak-toggle input::after { content: ''; width: 14px; height: 14px; border-radius: 50%; background: white; position: absolute; top: 3px; left: 3px; transition: transform .2s; }
+    .tweak-toggle input:checked::after { transform: translateX(16px); }
+
+    /* ── MOBILE ── */
+    @media (max-width: 1060px) {
+      #hero { grid-template-columns: 1fr; padding-top: 100px; min-height: auto; padding-bottom: 60px; }
+      .hero-right { justify-content: flex-start; margin-top: 48px; }
+      .tg-mock { width: 100%; max-width: 360px; }
+    }
+    @media (max-width: 900px) {
+      .nav-links { display: none; }
+      .professionals-top { grid-template-columns: 1fr; gap: 40px; padding: 40px 28px; }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 14px 20px; }
+      section { padding: 72px 20px; }
+      #problem-inner, #how-inner, #features-inner, #why-inner, #faq-inner, #footer-cta-inner, #trust-inner, #pricing-inner, #ai-demo-inner, #proof-inner { padding: 72px 20px; }
+      .ai-demo-layout { grid-template-columns: 1fr; gap: 36px; }
+      .ai-demo-phone { width: 220px; }
+      .phone-frame { width: 220px !important; }
+      .hero-title { font-size: 2.4rem; }
+      .problem-grid { grid-template-columns: 1fr; gap: 2px; }
+      .problem-card:first-child { border-radius: 16px 16px 0 0; }
+      .problem-card:last-child { border-radius: 0 0 16px 16px; }
+      .steps { grid-template-columns: 1fr 1fr; gap: 2px; }
+      .step:first-child { border-radius: 16px 0 0 0; }
+      .step:nth-child(2) { border-radius: 0 16px 0 0; }
+      .step:nth-child(3) { border-radius: 0 0 0 16px; }
+      .step:last-child { border-radius: 0 0 16px 0; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .feature:nth-child(1) { border-radius: 16px 0 0 0; }
+      .feature:nth-child(2) { border-radius: 0 16px 0 0; }
+      .feature:nth-child(5) { border-radius: 0 0 0 16px; }
+      .feature:nth-child(6) { border-radius: 0 0 16px 0; }
+      .feature:nth-child(3), .feature:nth-child(4) { border-radius: 0; }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+      .footer-brand { grid-column: 1 / -1; }
+      .footer-bottom { flex-direction: column; text-align: center; }
+      .pricing-bridge { padding: 28px 24px; }
+      .sticky-cta { display: flex; }
+      body { padding-bottom: 72px; }
+      .stats-demo-grid { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 480px) {
+      #hero { padding-left: 20px; padding-right: 20px; }
+      .hero-title { font-size: 2rem; }
+      .hero-cta-group { flex-direction: column; align-items: flex-start; }
+      .hero-cta-group .btn-primary { width: 100%; justify-content: center; }
+      .steps { grid-template-columns: 1fr; }
+      .step:first-child { border-radius: 16px 16px 0 0; }
+      .step:nth-child(2), .step:nth-child(3) { border-radius: 0; }
+      .step:last-child { border-radius: 0 0 16px 16px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .feature { border-radius: 0 !important; }
+      .feature:first-child { border-radius: 16px 16px 0 0 !important; }
+      .feature:last-child { border-radius: 0 0 16px 16px !important; }
+      .footer-inner { grid-template-columns: 1fr; }
+      .professionals-cta { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition-duration: 0.01ms !important; }
+    }
+  
+    /* ── MESSENGER MODAL ── */
+    .msg-modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+    }
+    .msg-modal-backdrop.open { display: flex; }
+    .msg-modal {
+      background: #1a1c18; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 28px; padding: 40px 36px; width: 340px; max-width: 90vw;
+      text-align: center; box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+      animation: modal-in .25s cubic-bezier(0.22,1,0.36,1);
+    }
+    @keyframes modal-in { from { opacity:0; transform:scale(0.92) translateY(20px); } to { opacity:1; transform:none; } }
+    .msg-modal-logo { font-size: 1.1rem; font-weight: 800; color: #eeeee9; letter-spacing:-0.02em; margin-bottom: 6px; }
+    .msg-modal-logo span { color: oklch(78% 0.22 128); }
+    .msg-modal h3 { font-size: 1.05rem; font-weight: 700; color: #eeeee9; margin-bottom: 6px; }
+    .msg-modal p { font-size: 0.85rem; color: rgba(238,238,233,0.5); margin-bottom: 28px; }
+    .msg-modal-btns { display: flex; flex-direction: column; gap: 12px; }
+    .msg-btn {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      padding: 16px 24px; border-radius: 100px; font-family: inherit;
+      font-size: 1rem; font-weight: 700; cursor: pointer; text-decoration: none;
+      border: none; transition: opacity .2s, transform .15s;
+    }
+    .msg-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .msg-btn:active { transform: scale(0.97); }
+    .msg-btn-tg { background: oklch(78% 0.22 128); color: #0c0d0b; }
+    .msg-btn-max { background: rgba(255,255,255,0.06); color: #eeeee9; border: 1px solid rgba(255,255,255,0.12); }
+    .msg-btn-max:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.1); }
+    .msg-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+    .msg-modal-close {
+      margin-top: 20px; background: none; border: none; color: rgba(238,238,233,0.35);
+      font-family: inherit; font-size: 0.85rem; cursor: pointer; transition: color .2s; padding: 4px;
+    }
+    .msg-modal-close:hover { color: rgba(238,238,233,0.7); }
+    /* AI demo phones row */
+    .ai-demo-phones-row {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 12px;
+    }
+    .ai-demo-phone--sm {
+      width: 160px !important;
+      transform: translateY(24px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08) !important;
+      opacity: 0.85;
+    }
+    .ai-demo-phone--lg {
+      width: 220px !important;
+      box-shadow: 0 36px 90px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.1) !important;
+      z-index: 2;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="hero-grid-bg"></div>
+<div class="hero-glow"></div>
+
+<!-- STICKY MOBILE CTA -->
+<div class="sticky-cta">
+  <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary">
+    Открыть EATLYY в Telegram
+    <svg width="15" height="15" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">EATL<span>YY</span></a>
+  <ul class="nav-links">
+    <li><a href="#features">Возможности</a></li>
+    <li><a href="#ai-demo">AI-анализ</a></li>
+    <li><a href="#professionals">Для экспертов</a></li>
+    <li><a href="#pricing">Тарифы</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="nav-cta">
+    Начать за 30 секунд
+    <svg width="13" height="13" fill="none" viewBox="0 0 14 14"><path d="M3 11L11 3M11 3H5M11 3v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow" data-reveal>
+      <span class="hero-dot"></span>
+      AI-дневник питания · Telegram &amp; MAX
+    </div>
+    <h1 class="hero-title" data-reveal data-reveal-delay="1">
+      Контроль питания<br/>без срывов<br/>и <em>ручного подсчёта</em>
+    </h1>
+    <p class="hero-sub" data-reveal data-reveal-delay="2">
+      Отправь фото или напиши, что съел — EATLYY мгновенно посчитает КБЖУ, поможет держать режим, понять питание и увидеть результат. Без таблиц и рутины.
+    </p>
+    <div class="hero-cta-group" data-reveal data-reveal-delay="3">
+      <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary">
+        Попробовать AI-анализ еды
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a href="#how" class="hero-scroll-link">Как это работает ↓</a>
+    </div>
+    <p class="hero-note" data-reveal data-reveal-delay="4">Без сложной регистрации · работает в Telegram и MAX</p>
+  </div>
+
+  <!-- REAL PRODUCT MOCKUP -->
+  <div class="hero-right" data-reveal data-reveal-delay="2">
+    <div class="phone-glow"></div>
+    <div class="phone-frame-side"></div>
+    <div class="phone-frame-side phone-frame-side2"></div>
+    <div class="phone-frame">
+      <img src="assets/screen-1.png" alt="EATLYY — главный экран приложения" loading="eager" />
+    </div>
+  </div>
+</section>
+
+<!-- SOCIAL PROOF -->
+<div id="proof">
+  <div id="proof-inner">
+    <div class="proof-stats">
+      <div class="proof-stat" data-reveal data-reveal-delay="1">
+        <div class="n">500+</div>
+        <div class="l">пользователей уже контролируют питание с EATLYY</div>
+      </div>
+      <div class="proof-stat" data-reveal data-reveal-delay="2">
+        <div class="n">10K+</div>
+        <div class="l">AI-анализов еды выполнено</div>
+      </div>
+      <div class="proof-stat" data-reveal data-reveal-delay="3">
+        <div class="n">3 сек</div>
+        <div class="l">среднее время добавления одного приёма пищи</div>
+      </div>
+      <div class="proof-stat" data-reveal data-reveal-delay="4">
+        <div class="n">∞</div>
+        <div class="l">тренеры и нутрициологи используют для работы с клиентами</div>
+      </div>
+    </div>
+    <div class="proof-quotes">
+      <div class="proof-quote" data-reveal data-reveal-delay="1">
+        <div class="proof-q-text">Наконец-то перестала гадать, что и сколько я ем. Просто фотографирую — и всё понятно. За 3 недели минус 2 кг без голодания.</div>
+        <div class="proof-q-author">
+          <div class="proof-q-avatar">А</div>
+          <div>
+            <div class="proof-q-name">Анна, 28 лет</div>
+            <div class="proof-q-role">пользователь EATLYY</div>
+          </div>
+        </div>
+      </div>
+      <div class="proof-quote" data-reveal data-reveal-delay="2">
+        <div class="proof-q-text">Использую с клиентами уже два месяца. Вижу их рацион в реальном времени — не нужно ждать отчётов, сразу даю корректировки.</div>
+        <div class="proof-q-author">
+          <div class="proof-q-avatar">М</div>
+          <div>
+            <div class="proof-q-name">Михаил, нутрициолог</div>
+            <div class="proof-q-role">эксперт EATLYY</div>
+          </div>
+        </div>
+      </div>
+      <div class="proof-quote" data-reveal data-reveal-delay="3">
+        <div class="proof-q-text">Раньше вёл таблицу в Excel — бросал через неделю. Здесь всё само считается, напоминает, показывает прогресс. Держусь уже 6 недель.</div>
+        <div class="proof-q-author">
+          <div class="proof-q-avatar">Д</div>
+          <div>
+            <div class="proof-q-name">Дмитрий, 34 года</div>
+            <div class="proof-q-role">пользователь EATLYY</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ПРОБЛЕМА -->
+<div id="problem">
+  <div id="problem-inner">
+    <div class="section-label" data-reveal>Знакомо?</div>
+    <p class="problem-lead" data-reveal data-reveal-delay="1">
+      Считаешь калории в уме? Забываешь записать еду? Не понимаешь, почему вес стоит?<br/>
+      <em>Это нормально — EATLYY помогает навести порядок за секунды.</em>
+    </p>
+    <div class="problem-grid">
+      <div class="problem-card" data-reveal data-reveal-delay="1">
+        <div class="problem-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+        <h3>Забываешь вести дневник</h3>
+        <p>Записываешь первые два дня, потом бросаешь. EATLYY напоминает и делает добавление мгновенным — фото или одно слово.</p>
+      </div>
+      <div class="problem-card" data-reveal data-reveal-delay="2">
+        <div class="problem-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+        <h3>Не понимаешь реальную калорийность</h3>
+        <p>Кажется, ешь немного — но цифры говорят другое. Фотоанализ EATLYY показывает точную картину за секунды.</p>
+      </div>
+      <div class="problem-card" data-reveal data-reveal-delay="3">
+        <div class="problem-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+        <h3>Вес стоит, а причины не видно</h3>
+        <p>Без данных нет понимания. EATLYY собирает статистику и помогает найти, что мешает прогрессу.</p>
+      </div>
+    </div>
+    <div style="margin-top:48px;" data-reveal>
+      <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary">
+        Хочу навести порядок в питании
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- КАК РАБОТАЕТ -->
+<div id="how">
+  <div id="how-inner">
+    <div class="section-label" data-reveal>Как это работает</div>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">Просто. Быстро.<br/>Без лишнего.</h2>
+    <p class="section-sub" data-reveal data-reveal-delay="2">Четыре шага до понятного питания — без сложных настроек.</p>
+    <div class="steps">
+      <div class="step" data-reveal data-reveal-delay="1">
+        <div class="step-num">01</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <h3>Добавляй еду</h3>
+        <p>Текстом, фото или быстрым поиском. EATLYY распознаёт и считает сам.</p>
+      </div>
+      <div class="step" data-reveal data-reveal-delay="2">
+        <div class="step-num">02</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg></div>
+        <h3>Видь КБЖУ и калории</h3>
+        <p>Мгновенная сводка по каждому приёму пищи и за день в целом.</p>
+      </div>
+      <div class="step" data-reveal data-reveal-delay="3">
+        <div class="step-num">03</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+        <h3>Следи за прогрессом</h3>
+        <p>Статистика за неделю, месяц, история веса. Видишь тренд — понимаешь, что работает.</p>
+      </div>
+      <div class="step" data-reveal data-reveal-delay="4">
+        <div class="step-num">04</div>
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Подключи эксперта</h3>
+        <p>Тренер или нутрициолог видит твой рацион и помогает держать курс без срывов.</p>
+      </div>
+    </div>
+    <div style="margin-top:48px;display:flex;justify-content:center;" data-reveal>
+      <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary">
+        Начать контролировать питание
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ЧТО УМЕЕТ -->
+<div id="features">
+  <div id="features-inner">
+    <div class="section-label" data-reveal>Возможности</div>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">Что умеет EATLYY</h2>
+    <p class="section-sub" data-reveal data-reveal-delay="2">Всё, что нужно для контроля питания — в одном боте.</p>
+    <div class="features-grid">
+      <div class="feature" data-reveal data-reveal-delay="1">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+        <h3>Мгновенное добавление еды</h3>
+        <p>Фото, текст или голос — распознавание за секунды, без ручного поиска и взвешивания.</p>
+      </div>
+      <div class="feature" data-reveal data-reveal-delay="2">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z"/></svg></div>
+        <h3>AI-анализ рациона</h3>
+        <p>Умные подсказки: где перебор, где дефицит, что скорректировать для достижения цели.</p>
+      </div>
+      <div class="feature" data-reveal data-reveal-delay="3">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></div>
+        <h3>Понятная статистика</h3>
+        <p>Динамика за неделю, история веса, тренды — без таблиц, сразу понятно.</p>
+      </div>
+      <div class="feature" data-reveal data-reveal-delay="1">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+        <h3>Контроль прогресса</h3>
+        <p>Видишь, насколько близко к цели. Мотивирует держать систему каждый день.</p>
+      </div>
+      <div class="feature" data-reveal data-reveal-delay="2">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Поддержка эксперта</h3>
+        <p>Тренер или нутрициолог видит рацион и помогает именно там, где нужно.</p>
+      </div>
+      <div class="feature" data-reveal data-reveal-delay="3">
+        <div class="feature-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+        <h3>Система без рутины</h3>
+        <p>Напоминания, быстрый ввод, синхронизация — режим держится сам.</p>
+      </div>
+    </div>
+    <div style="margin-top:48px;display:flex;justify-content:center;" data-reveal>
+      <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary">
+        Начать контролировать питание
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- AI DEMO -->
+<div id="ai-demo">
+  <div id="ai-demo-inner">
+    <div class="section-label" data-reveal>AI-анализ</div>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">От фото к данным<br/>за секунды</h2>
+    <p class="section-sub" data-reveal data-reveal-delay="2">Никакого ручного ввода. Сфотографировал — получил полный анализ.</p>
+    <div class="ai-demo-layout">
+      <div class="ai-flow" data-reveal data-reveal-delay="1">
+        <div class="ai-flow-step">
+          <div class="ai-flow-num">01</div>
+          <div class="ai-flow-text">
+            <h4>Отправляешь фото или текст</h4>
+            <p>Сфотографировал блюдо или написал «гречка с курицей 200г» — EATLYY принимает любой формат.</p>
+          </div>
+        </div>
+        <div class="ai-flow-arrow">↓</div>
+        <div class="ai-flow-step">
+          <div class="ai-flow-num">02</div>
+          <div class="ai-flow-text">
+            <h4>AI распознаёт состав</h4>
+            <p>Модель определяет ингредиенты, примерный вес и рассчитывает калории и БЖУ автоматически.</p>
+          </div>
+        </div>
+        <div class="ai-flow-arrow">↓</div>
+        <div class="ai-flow-step">
+          <div class="ai-flow-num">03</div>
+          <div class="ai-flow-text">
+            <h4>Получаешь разбор и инсайт</h4>
+            <p>КБЖУ, вписывается ли в дневную норму, сколько осталось до цели и на что обратить внимание.</p>
+          </div>
+        </div>
+      </div>
+      <div class="ai-demo-phones-row" data-reveal data-reveal-delay="2">
+        <div class="ai-demo-phone ai-demo-phone--sm">
+          <img src="assets/screen-2.png" alt="EATLYY — выбор граммов" loading="lazy" />
+        </div>
+        <div class="ai-demo-phone ai-demo-phone--lg">
+          <img src="assets/screen-3.png" alt="EATLYY — анализ готов" loading="lazy" />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ДЛЯ КОГО -->
+<section id="for-who">
+  <div class="section-label" data-reveal>Для кого</div>
+  <h2 class="section-title" data-reveal data-reveal-delay="1">EATLYY подходит<br/>каждому</h2>
+  <div class="audience-grid">
+    <div class="audience-card" data-reveal data-reveal-delay="1">
+      <div class="audience-tag">Самостоятельно</div>
+      <h3>Хочу контролировать питание сам</h3>
+      <p>Удобный дневник с AI-анализом, статистикой и напоминаниями. Понятно, что идёт не так — и как исправить.</p>
+    </div>
+    <div class="audience-card" data-reveal data-reveal-delay="2">
+      <div class="audience-tag">С экспертом</div>
+      <h3>Хочу результат быстрее</h3>
+      <p>Подключи нутрициолога или тренера — он видит рацион в реальном времени, замечает ошибки и помогает держать режим.</p>
+    </div>
+    <div class="audience-card" data-reveal data-reveal-delay="3">
+      <div class="audience-tag">Эксперты</div>
+      <h3>Тренирую и консультирую</h3>
+      <p>Видь рацион клиентов, давай обратную связь быстро. Меньше рутины — больше результата.</p>
+    </div>
+  </div>
+  <div style="margin-top:48px;" data-reveal>
+    <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary">
+      Это про меня — открыть EATLYY
+      <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ПОЧЕМУ РАБОТАЕТ -->
+<div id="why">
+  <div id="why-inner">
+    <div class="section-label" data-reveal>Почему это работает</div>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">Система питания,<br/>которую реально<br/>получится соблюдать</h2>
+    <div class="why-grid">
+      <div class="why-card" data-reveal data-reveal-delay="1">
+        <span class="why-card-accent"></span>
+        <blockquote>Хаос в питании — главная причина срывов</blockquote>
+        <p>Когда не понимаешь, что и сколько ешь — легко выйти за рамки. EATLYY делает питание видимым и понятным каждый день.</p>
+      </div>
+      <div class="why-card" data-reveal data-reveal-delay="2">
+        <span class="why-card-accent"></span>
+        <blockquote>Данные дают спокойствие и уверенность</blockquote>
+        <p>Не «кажется, что правильно ем», а точная статистика. Видишь прогресс — держишь курс.</p>
+      </div>
+      <div class="why-card" data-reveal data-reveal-delay="3">
+        <span class="why-card-accent"></span>
+        <blockquote>С экспертом держать режим проще</blockquote>
+        <p>Когда кто-то видит твой рацион — ответственность выше, срывов меньше, путь к цели короче.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ДЛЯ ПРОФЕССИОНАЛОВ -->
+<section id="professionals">
+  <div class="section-label" data-reveal>Для профессионалов</div>
+  <h2 class="section-title" data-reveal data-reveal-delay="1">Инструмент для экспертов<br/>и партнёров</h2>
+  <p class="section-sub" data-reveal data-reveal-delay="2">EATLYY — платформа для тренеров, нутрициологов, клубов и компаний.</p>
+  <div class="professionals-top" data-reveal data-reveal-delay="1">
+    <div>
+      <div class="section-label">Кабинет эксперта</div>
+      <h3 style="font-size:clamp(1.6rem,3vw,2.2rem);font-weight:800;letter-spacing:-0.03em;line-height:1.2;margin-bottom:16px;">Работай с клиентами<br/>эффективнее</h3>
+      <p style="font-size:0.95rem;color:var(--muted);line-height:1.7;max-width:440px;">Видь рацион клиентов в реальном времени, замечай ошибки, давай точечную обратную связь — без лишней переписки.</p>
+      <ul class="professionals-list">
+        <li>Рацион клиента в реальном времени</li>
+        <li>Быстрое выявление и исправление ошибок</li>
+        <li>Точечная обратная связь</li>
+        <li>Прогресс клиентов — всегда на виду</li>
+      </ul>
+      <div class="professionals-cta">
+        <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary">Подключить клиентов</a>
+        <span class="professionals-email">или <a href="mailto:info@eatlyy.ru">написать нам →</a></span>
+      </div>
+    </div>
+    <div class="professionals-mockup">
+      <div class="mock-glow"></div>
+      <div class="mock-phone">
+        <div class="mock-phone-bar">
+          <span class="mock-phone-title">EATL<span>YY</span> Expert</span>
+          <span class="mock-phone-badge">Кабинет</span>
+        </div>
+        <div class="mock-stats-zone">
+          <div class="mock-stats-heading">Статистика</div>
+          <div class="mock-stat-cards">
+            <div class="mock-stat-card"><div class="mock-stat-num">1</div><div class="mock-stat-caption">Всего клиентов</div></div>
+            <div class="mock-stat-card"><div class="mock-stat-num zero">0</div><div class="mock-stat-caption">Записали сегодня</div></div>
+            <div class="mock-stat-card"><div class="mock-stat-num">1</div><div class="mock-stat-caption">Не записали</div></div>
+          </div>
+        </div>
+        <div class="mock-divider"></div>
+        <div class="mock-clients-zone">
+          <div class="mock-zone-label">Клиенты <span class="mock-zone-action">+ Добавить</span></div>
+          <div class="mock-client-item">
+            <div class="mock-avatar">К</div>
+            <div class="mock-client-info"><div class="mock-client-name">Кристина</div><div class="mock-client-meta">48 кг</div></div>
+            <span class="mock-status-pill">Активна</span>
+          </div>
+        </div>
+        <div class="mock-divider"></div>
+        <div class="mock-alert-zone">
+          <div class="mock-zone-label" style="margin-bottom:8px;">Не записали сегодня</div>
+          <div class="mock-alert-card">
+            <div class="mock-alert-dot"></div>
+            <div class="mock-alert-text"><strong>Кристина</strong> не добавила еду сегодня</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="professionals-grid" style="margin-top:20px;">
+    <div class="pro-card" data-reveal data-reveal-delay="1">
+      <div class="pro-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <h3>Тренеры и нутрициологи</h3>
+      <p>Управляй питанием клиентов в реальном времени. Видь ошибки, давай обратную связь быстро.</p>
+    </div>
+    <div class="pro-card" data-reveal data-reveal-delay="2">
+      <div class="pro-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      <h3>Фитнес-клубы</h3>
+      <p>Предложи клиентам контроль питания как часть абонемента. Повысь лояльность.</p>
+    </div>
+    <div class="pro-card" data-reveal data-reveal-delay="3">
+      <div class="pro-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+      <h3>Компании</h3>
+      <p>Корпоративное wellness — мотивируй команду следить за здоровьем без лишнего.</p>
+    </div>
+    <div class="pro-card" data-reveal data-reveal-delay="4">
+      <div class="pro-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
+      <h3>Блогеры и партнёры</h3>
+      <p>Реферальная программа. Рекомендуй EATLYY и получай вознаграждение.</p>
+    </div>
+  </div>
+  <div style="margin-top:40px;display:flex;flex-wrap:wrap;gap:14px;align-items:center;" data-reveal>
+    <a href="mailto:info@eatlyy.ru" class="btn-primary">Стать партнёром</a>
+    <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-ghost">Подключить клиентов</a>
+    <span style="font-size:0.88rem;color:var(--muted);">Написать нам: <a href="mailto:info@eatlyy.ru" style="color:var(--accent);text-decoration:none;">info@eatlyy.ru</a></span>
+  </div>
+</section>
+
+<!-- СТАТИСТИКА -->
+<div id="stats-block" style="background:var(--bg2);">
+  <div style="max-width:1120px;margin:0 auto;padding:100px 40px;">
+    <div class="section-label" data-reveal>Статистика</div>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">Прогресс, который<br/>видно каждый день</h2>
+    <p class="section-sub" data-reveal data-reveal-delay="2">История веса, ИМТ, цель и дефицит — всё в одном экране. Никаких таблиц.</p>
+    <div class="stats-demo-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-top:60px;" data-reveal data-reveal-delay="1">
+      <div>
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <div style="display:flex;align-items:flex-start;gap:16px;padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:var(--accent-bg);border:1px solid var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </div>
+            <div>
+              <div style="font-size:0.95rem;font-weight:700;margin-bottom:4px;">История веса</div>
+              <div style="font-size:0.86rem;color:var(--muted);line-height:1.6;">Каждое взвешивание фиксируется. Видишь динамику и понимаешь, движешься ли к цели.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:16px;padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:var(--accent-bg);border:1px solid var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
+            <div>
+              <div style="font-size:0.95rem;font-weight:700;margin-bottom:4px;">Цель и прогноз</div>
+              <div style="font-size:0.86rem;color:var(--muted);line-height:1.6;">EATLYY считает дефицит калорий и прогнозирует, через сколько недель достигнешь цели.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:16px;padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:var(--accent-bg);border:1px solid var(--accent-dim);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
+            </div>
+            <div>
+              <div style="font-size:0.95rem;font-weight:700;margin-bottom:4px;">Кольца БЖУ</div>
+              <div style="font-size:0.86rem;color:var(--muted);line-height:1.6;">Белки, жиры, углеводы — наглядные кольца показывают, насколько рацион соответствует норме.</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:32px;" data-reveal>
+          <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary">
+            Начать отслеживать прогресс
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;position:relative;">
+        <div style="position:absolute;bottom:-50px;left:50%;transform:translateX(-50%);width:200px;height:100px;border-radius:50%;background:radial-gradient(ellipse,rgba(163,230,53,0.09) 0%,transparent 70%);pointer-events:none;z-index:-1;"></div>
+        <div class="phone-frame" style="width:252px;">
+          <img src="assets/screen-4.png" alt="EATLYY — статистика и история веса" loading="lazy" />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ТАРИФЫ -->
+<div id="pricing">
+  <div id="pricing-inner">
+    <div class="section-label" data-reveal>Тарифы</div>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">Один инструмент<br/>вместо хаоса</h2>
+    <div class="pricing-bridge" data-reveal data-reveal-delay="2">
+      <div class="pricing-bridge-text">EATLYY помогает не просто считать калории — а <em>удерживать систему питания стабильно</em>. Без таблиц, постоянных срывов и ручной рутины.</div>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan" data-reveal data-reveal-delay="1">
+        <div>
+          <div class="plan-name">Optimal</div>
+          <div class="plan-price">399 ₽<span> / мес</span></div>
+          <div class="plan-value">Самостоятельный контроль</div>
+          <div class="plan-desc">Все инструменты для тех, кто хочет держать питание под контролем без чужой помощи.</div>
+        </div>
+        <ul class="plan-features">
+          <li>AI-фотоанализ еды</li>
+          <li>Расчёт КБЖУ автоматически</li>
+          <li>История веса и прогресса</li>
+          <li>AI-подсказки по рациону</li>
+          <li>Напоминания о приёмах пищи</li>
+        </ul>
+        <div class="plan-cta-wrap">
+          <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-ghost" style="width:100%;justify-content:center;">Начать с Optimal</a>
+        </div>
+      </div>
+      <div class="plan featured" style="position:relative;" data-reveal data-reveal-delay="2">
+        <div class="plan-badge">Рекомендуем</div>
+        <div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">499 ₽<span> / мес</span></div>
+          <div class="plan-value">+ живой эксперт рядом</div>
+          <div class="plan-desc">Тренер или нутрициолог видит твой рацион и помогает держать курс.</div>
+        </div>
+        <ul class="plan-features">
+          <li>Всё из Optimal</li>
+          <li>Эксперт видит твой рацион</li>
+          <li>Быстрая корректировка ошибок</li>
+          <li>Меньше срывов, больше дисциплины</li>
+          <li>Быстрее к результату</li>
+        </ul>
+        <div class="plan-cta-wrap">
+          <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary" style="width:100%;justify-content:center;">Попробовать Pro</a>
+        </div>
+      </div>
+    </div>
+    <p class="pricing-note" data-reveal>Отмена в любой момент · без скрытых платежей</p>
+  </div>
+</div>
+
+<!-- ДОВЕРИЕ -->
+<div id="trust">
+  <div id="trust-inner">
+    <div class="trust-grid">
+      <div class="trust-card" data-reveal data-reveal-delay="1">
+        <div class="trust-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div>
+          <h4>Данные хранятся безопасно</h4>
+          <p>Не передаются третьим лицам без согласия.</p>
+        </div>
+      </div>
+      <div class="trust-card" data-reveal data-reveal-delay="2">
+        <div class="trust-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2l-9.5 9.5M21.5 2H15M21.5 2V8.5M10 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6"/></svg></div>
+        <div>
+          <h4>Telegram и MAX</h4>
+          <p>Один бот — два мессенджера. Выбирай удобный.</p>
+        </div>
+      </div>
+      <div class="trust-card" data-reveal data-reveal-delay="3">
+        <div class="trust-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <div>
+          <h4>Поддержка и сотрудничество</h4>
+          <p><a href="mailto:info@eatlyy.ru">info@eatlyy.ru</a></p>
+        </div>
+      </div>
+      <div class="trust-card" data-reveal data-reveal-delay="4">
+        <div class="trust-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+        <div>
+          <h4>Сделано в России</h4>
+          <p>Разработан российской командой для русскоязычной аудитории.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div id="faq">
+  <div id="faq-inner">
+    <div class="section-label" data-reveal>FAQ</div>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">Частые вопросы</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Это платно? Есть ли бесплатный доступ?<svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        <div class="faq-a">EATLYY работает по подписке: Optimal — 399 ₽/мес, Pro — 499 ₽/мес. Открой бота и начни — часть функций доступна сразу. Отмена в любой момент.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Что такое EATLYY?<svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        <div class="faq-a">EATLYY — AI-дневник питания в Telegram и MAX. Добавляй еду по фото или тексту, получай КБЖУ, статистику и прогресс. Можно подключить эксперта для контроля рациона.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Мои данные в безопасности?<svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        <div class="faq-a">Да. Данные хранятся безопасно и не передаются третьим лицам без согласия. Подробнее — в политике конфиденциальности.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Можно пользоваться через Telegram и MAX?<svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        <div class="faq-a">Да, EATLYY работает в обоих мессенджерах. Функциональность одинакова — выбирай удобный.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Подходит ли EATLYY для тренера или нутрициолога?<svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        <div class="faq-a">Да. Эксперты получают кабинет с доступом к рациону клиентов в реальном времени. Напишите нам: <a href="mailto:info@eatlyy.ru" style="color:var(--accent);">info@eatlyy.ru</a></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Чем EATLYY отличается от обычного дневника?<svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        <div class="faq-a">Обычный дневник просто записывает. EATLYY анализирует: находит ошибки, показывает тренды, даёт AI-подсказки. А тариф Pro добавляет живого эксперта.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Как добавить еду?<svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        <div class="faq-a">Три способа: сфотографировать блюдо, написать название текстом или найти в базе. EATLYY рассчитывает КБЖУ автоматически — без ручного ввода граммов.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ФИНАЛЬНЫЙ CTA -->
+<div id="footer-cta">
+  <div id="footer-cta-inner">
+    <div class="section-label" style="display:block;text-align:center;" data-reveal>Начни сегодня</div>
+    <h2 class="section-title" data-reveal data-reveal-delay="1">Начни менять питание<br/>уже сегодня</h2>
+    <p class="section-sub" data-reveal data-reveal-delay="2">Открой EATLYY — и через 30 секунд добавь первый приём пищи. Без таблиц, без рутины.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;" data-reveal data-reveal-delay="3">
+      <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="btn-primary">
+        Открыть EATLYY в Telegram
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 13L13 3M13 3H6M13 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <a href="mailto:info@eatlyy.ru" class="btn-ghost">Написать нам</a>
+    </div>
+    <p style="margin-top:20px;font-size:0.78rem;color:rgba(238,238,233,0.3);" data-reveal data-reveal-delay="4">Без сложной регистрации · работает в Telegram и MAX</p>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo">EATL<span>YY</span></div>
+      <p>AI-дневник питания без хаоса — самостоятельно или с экспертом.<br/><a href="mailto:info@eatlyy.ru" style="color:var(--accent);text-decoration:none;">info@eatlyy.ru</a></p>
+      <div class="footer-brand-links">
+        <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="footer-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2l-9.5 9.5M21.5 2H15M21.5 2V8.5M10 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6"/></svg>
+          Telegram
+        </a>
+        <a href="javascript:void(0)" onclick="openMsgModal();return false;" class="footer-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+          MAX
+        </a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Продукт</h4>
+      <a href="javascript:void(0)" onclick="openMsgModal();return false;">Открыть бот</a>
+      <a href="#features">Возможности</a>
+      <a href="#ai-demo">AI-анализ</a>
+      <a href="#how">Как работает</a>
+      <a href="#pricing">Тарифы</a>
+    </div>
+    <div class="footer-col">
+      <h4>Компания</h4>
+      <a href="#professionals">Для экспертов</a>
+      <a href="#professionals">Сотрудничество</a>
+      <a href="#">Политика конфиденциальности</a>
+      <a href="#">Условия использования</a>
+    </div>
+    <div class="footer-col">
+      <h4>Контакты</h4>
+      <a href="mailto:info@eatlyy.ru">info@eatlyy.ru</a>
+      <a href="javascript:void(0)" onclick="openMsgModal();return false;">@EATLYY_bot в Telegram</a>
+      <a href="#faq">FAQ</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 EATLYY. Все права защищены. Сделано в России.</span>
+    <a href="mailto:info@eatlyy.ru" style="color:var(--accent);text-decoration:none;">info@eatlyy.ru</a>
+    <a href="javascript:void(0)" onclick="openMsgModal();return false;" style="color:var(--accent);text-decoration:none;">@EATLYY_bot</a>
+  </div>
+</footer>
+
+<!-- TWEAKS PANEL -->
+<div id="tweaks-panel">
+  <h3>Tweaks</h3>
+  <div class="tweak-row">
+    <label class="tweak-label">Акцентный цвет</label>
+    <input type="color" id="tw-accent" value="#a3e635" oninput="applyTweak('accent', this.value)" />
+  </div>
+  <div class="tweak-row">
+    <label class="tweak-label">Фон страницы</label>
+    <select id="tw-bg" onchange="applyTweak('bg', this.value)">
+      <option value="#0c0d0b">Почти чёрный (по умолчанию)</option>
+      <option value="#080c0e">Тёмно-синий</option>
+      <option value="#0e0c0b">Тёплый тёмный</option>
+      <option value="#0d0d0d">Нейтральный чёрный</option>
+    </select>
+  </div>
+  <div class="tweak-row tweak-toggle">
+    <label class="tweak-label" style="margin:0">Подчеркнуть Pro-тариф</label>
+    <input type="checkbox" id="tw-pro" checked onchange="applyTweak('proHighlight', this.checked)" />
+  </div>
+</div>
+
+<script>
+  // ── Messenger modal ──
+  function openMsgModal() {
+    document.getElementById('msgModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeMsgModal() {
+    document.getElementById('msgModal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMsgModal();
+  });
+
+  // ── Scroll reveal (JS-driven to avoid CSS cascade issues) ──
+  (function() {
+    const EASING = 'cubic-bezier(0.22,1,0.36,1)';
+    const DELAYS = [0, 0.08, 0.16, 0.24, 0.32, 0.40];
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function initEl(el) {
+      if (reduced) return;
+      const d = parseInt(el.getAttribute('data-reveal-delay') || '0', 10);
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(26px)';
+      el.style.transition = 'opacity 0.6s ' + EASING + ' ' + (DELAYS[d] || 0) + 's, transform 0.6s ' + EASING + ' ' + (DELAYS[d] || 0) + 's';
+    }
+
+    function revealEl(el) {
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    }
+
+    const els = document.querySelectorAll('[data-reveal]');
+    if (!els.length) return;
+
+    els.forEach(initEl);
+
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { revealEl(e.target); obs.unobserve(e.target); } });
+    }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
+
+    setTimeout(function() {
+      els.forEach(function(el) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight + 100 && rect.bottom > -100) {
+          revealEl(el);
+        } else {
+          obs.observe(el);
+        }
+      });
+    }, 80);
+  })();
+
+  // ── FAQ accordion ──
+  function toggleFaq(btn) {
+    const isOpen = btn.classList.contains('open');
+    document.querySelectorAll('.faq-q.open').forEach(b => {
+      b.classList.remove('open');
+      b.nextElementSibling.classList.remove('open');
+    });
+    if (!isOpen) {
+      btn.classList.add('open');
+      btn.nextElementSibling.classList.add('open');
+    }
+  }
+
+  // ── Tweaks ──
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "accent": "#a3e635",
+    "bg": "#0c0d0b",
+    "proHighlight": true
+  }/*EDITMODE-END*/;
+
+  function applyTweak(key, value) {
+    if (key === 'accent') document.documentElement.style.setProperty('--accent', value);
+    if (key === 'bg') {
+      document.documentElement.style.setProperty('--bg', value);
+      const r = parseInt(value.slice(1,3),16), g = parseInt(value.slice(3,5),16), b = parseInt(value.slice(5,7),16);
+      document.documentElement.style.setProperty('--bg2', `rgb(${Math.min(r+5,255)},${Math.min(g+6,255)},${Math.min(b+4,255)})`);
+      document.documentElement.style.setProperty('--surface', `rgb(${Math.min(r+14,255)},${Math.min(g+16,255)},${Math.min(b+12,255)})`);
+    }
+    if (key === 'proHighlight') {
+      const f = document.querySelector('.plan.featured');
+      if (f) { f.style.border = value ? '1px solid var(--accent)' : '1px solid var(--border)'; f.style.background = value ? 'var(--accent-bg)' : 'transparent'; }
+    }
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: value } }, '*');
+  }
+
+  window.addEventListener('message', e => {
+    if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks-panel').style.display = 'block';
+    if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks-panel').style.display = 'none';
+  });
+  window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('tw-accent').value = TWEAK_DEFAULTS.accent;
+    document.getElementById('tw-bg').value = TWEAK_DEFAULTS.bg;
+    document.getElementById('tw-pro').checked = TWEAK_DEFAULTS.proHighlight;
+  });
+</script>
+
+<!-- MESSENGER MODAL -->
+<div class="msg-modal-backdrop" id="msgModal" onclick="if(event.target===this)closeMsgModal()">
+  <div class="msg-modal">
+    <div class="msg-modal-logo">EATL<span>YY</span></div>
+    <h3>Открыть приложение</h3>
+    <p>Выбери мессенджер</p>
+    <div class="msg-modal-btns">
+      <a href="https://t.me/EATLYY_bot" class="msg-btn msg-btn-tg" target="_blank" rel="noopener" onclick="closeMsgModal();return true;">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.96 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+        В Telegram
+      </a>
+      <a href="https://max.ru/id222516043000_bot" class="msg-btn msg-btn-max" target="_blank" rel="noopener" onclick="closeMsgModal();return true;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        В MAX
+      </a>
+    </div>
+    <button class="msg-modal-close" onclick="closeMsgModal()">Закрыть</button>
+  </div>
+</div>
+
+</body>
+</html>
